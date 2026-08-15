@@ -332,6 +332,9 @@ func (q *Queue) Fail(request model.FailRequest) (*model.Job, error) {
 		return nil, errors.New("message is required")
 	}
 	now := q.clock.Now().UTC()
+	if now.After(job.Lease.ExpiresAt.Add(q.cfg.HeartbeatGrace())) {
+		return nil, errors.New("lease has expired")
+	}
 	actor := job.Lease.WorkerID
 	job.Lease = nil
 	job.LastError = &model.Failure{Code: request.Code, Message: request.Message, Retryable: request.Retryable, At: now}
